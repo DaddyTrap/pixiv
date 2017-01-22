@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from abc import abstractmethod, ABCMeta
+from api import PixivApi
 
 
 class PixivModel(object):
@@ -65,6 +66,10 @@ class PixivIllustModel(PixivModel):
         if 'work' in data:
             data = data['work']
 
+        # ugoira
+        if data['type'] == 'ugoira' and self._login_user:
+            frame_info = self._login_user.get_illustration(data['id'])[0]['metadata']['frames']
+            data['page_count'] = len(frame_info)
         # not manga
         if data['page_count'] == 1:
             image_urls.append(data['image_urls']['large'])
@@ -76,15 +81,16 @@ class PixivIllustModel(PixivModel):
         return image_urls
 
     @classmethod
-    def create_illust_from_data(cls, data):
+    def create_illust_from_data(cls, data, user=None):
         illust = cls()
+        illust._login_user = user
         illust.extract_common_information(illust, data)
         image_urls = illust.get_image_url_per_illust(data)
         illust.image_urls = image_urls
         return illust
 
     @classmethod
-    def from_data(cls, data_list):
+    def from_data(cls, data_list, user=None):
         """parse data to dict contains illust information
 
         Return:
@@ -96,11 +102,11 @@ class PixivIllustModel(PixivModel):
             if cls.is_ranking(data):
                 works = data['works']
                 for work in works:
-                    illust = cls.create_illust_from_data(work)
+                    illust = cls.create_illust_from_data(work, user=user)
                     illusts.append(illust)
 
             # user_illusts or illust
             else:
-                illust = cls.create_illust_from_data(data)
+                illust = cls.create_illust_from_data(data, user=user)
                 illusts.append(illust)
         return illusts
