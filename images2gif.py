@@ -64,6 +64,7 @@ Usefull links
 
 """
 # todo: This module should be part of imageio (or at least based on)
+# This file was copied from https://github.com/rec/echomesh/blob/master/code/python/external/images2gif.py, and modified by DaddyTrap
 
 import os, time, sys
 
