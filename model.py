@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from abc import abstractmethod, ABCMeta
-from api import PixivApi
+import os
+import json
 
 
 class PixivModel(object):
@@ -69,6 +70,9 @@ class PixivIllustModel(PixivModel):
         # ugoira
         if data['type'] == 'ugoira' and self._login_user:
             frame_info = self._login_user.get_illustration(data['id'])[0]['metadata']['frames']
+            # IO here is not efficient
+            with open('ugoira_frames_info/{0}.json'.format(os.path.basename(data['image_urls']['large'])[:-5]), mode='w') as frame_file:
+                frame_file.write(json.dumps(frame_info))
             data['page_count'] = len(frame_info)
         # not manga
         if data['page_count'] == 1:

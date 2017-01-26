@@ -30,9 +30,12 @@ import re
 import sys
 import threading
 import time
+import json
 
 import requests
 from docopt import docopt
+from PIL import Image
+from images2gif import writeGif
 
 from api import PixivApi
 from i18n import i18n as _
@@ -309,9 +312,41 @@ def remove_repeat(user):
                                 print('Delete', os.path.join(path, f))
 
 
+def convert_one(frames_info_file, illust_file_list):
+    with open(frames_info_file) as frames_info_file:
+        frames_info = [item for item in json.load(frames_info_file)]
+    durations = [item['delay_msec'] / 1000 for item in frames_info]
+    images = [Image.open(item) for item in illust_file_list]
+    print(json.dumps(illust_file_list, indent=2))
+    if len(illust_file_list) > 0:
+        basename = os.path.basename(illust_file_list[0])
+        dirname = os.path.dirname(illust_file_list[0])
+        filename = '{0}/{1}'.format(dirname, basename.split('_')[0] + '.gif')
+        writeGif(filename, images, duration=durations, repeat=True, nq=0.1)
+        print(filename + ' -- ok')
+    else:
+        print('skip')
+
+
+def cmp_file_name(f1):
+    return int(re.sub('\d*_[^\d]*', '', os.path.basename(f1))[:-4])
+
+
+def convert_gif(user):
+    """Convert frames of ugoira to GIF"""
+    illust_dir = input("Input the ugoira's directory: ")
+    frames_file_list = sorted(['./ugoira_frames_info/{0}'.format(item) for item in os.listdir('./ugoira_frames_info') if re.match('\d*.*\.json', item)])
+    full_illust_list = sorted(['{0}/{1}'.format(illust_dir, item) for item in os.listdir(illust_dir)], key=cmp_file_name)
+    for frames_info in frames_file_list:
+        illust_file_list = [item for item in full_illust_list if os.path.splitext(os.path.basename(frames_info))[0] in item]
+        convert_one(frames_info, illust_file_list)
+
+
 def main():
     print(_(' Pixiv Downloader 2.4 ').center(77, '#'))
     user = PixivApi()
+    if not os.path.exists('ugoira_frames_info'):
+        os.makedirs('ugoira_frames_info')
 
     if len(sys.argv) > 1:
         ids = arguments['<id>']
@@ -334,7 +369,8 @@ def main():
             '2': download_by_ranking,
             '3': download_by_history_ranking,
             '4': update_exist,
-            '5': remove_repeat
+            '5': remove_repeat,
+            '6': convert_gif
         }
 
         while True:
